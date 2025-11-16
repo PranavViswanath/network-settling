@@ -13,12 +13,24 @@
     <div class="app">
         <header>
             <h1>Network Settling</h1>
-            <p>Parallel constraint satisfaction through connectionist relaxation</p>
+            <p>Watch a constraint satisfaction network solve puzzles through parallel activation and inhibition</p>
         </header>
 
         <main>
-            <div class="grid-wrapper">
-                <div id="grid" class="grid"></div>
+            <div class="visualization">
+                <div class="grid-section">
+                    <div class="grid-wrapper">
+                        <div id="grid" class="grid"></div>
+                    </div>
+                    <p class="hint">Click any cell to edit • Press Enter to confirm • Escape to cancel</p>
+                </div>
+
+                <div class="probability-panel">
+                    <h3>Live Probability Distribution</h3>
+                    <div id="probabilityViz" class="probability-viz">
+                        <p class="placeholder">Click a cell to see its probability distribution update in real-time</p>
+                    </div>
+                </div>
             </div>
 
             <div class="controls">
@@ -62,8 +74,8 @@
             <div class="settings">
                 <div class="setting">
                     <label for="speed">Speed</label>
-                    <input type="range" id="speed" min="50" max="1000" value="400" step="50">
-                    <span id="speedValue">400ms</span>
+                    <input type="range" id="speed" min="100" max="1000" value="500" step="50">
+                    <span id="speedValue">500ms</span>
                 </div>
                 
                 <div class="setting">
@@ -72,18 +84,35 @@
                     <span id="inhibitionValue">0.50</span>
                 </div>
             </div>
-
-            <div id="cellDetail" class="cell-detail hidden">
-                <div class="detail-header">
-                    <span id="detailTitle">Cell (0, 0)</span>
-                    <button id="closeDetail" class="close-button">×</button>
-                </div>
-                <div id="detailBars" class="detail-bars"></div>
-            </div>
         </main>
 
+        <article class="writeup">
+            <h2>Network Settling Visual Tool</h2>
+            <p class="intro">Welcome! This tool lets you input your own grid (like Sudoku or a Latin Square) and see how a network settles on the solution—live and step by step. Change the cell values, press go, and watch as the grid works out the answer via competing activations, not traditional logic. You can experiment to see how different clues shape the solution and how quickly the network "relaxes" into the right state.</p>
+
+            <section>
+                <h3>What is This?</h3>
+                <p>This is an interactive exploration of <strong>connectionism</strong> from cognitive science—specifically, what you see in <a href="https://gatech.instructure.com/files/65969493/download?download_frd=1&verifier=fZP5Q1WLFB7dg6eI8Im4QvjRCOAqCzrZLnNxd8cw" target="_blank">Lecture 7 on Connections</a>. Instead of solving the puzzle through step-by-step elimination, the grid models every possible cell-value assignment as a "unit" with an activation level (how likely that cell is to take on a particular value). Known values ("clues") are set to maximum activation, and the rest start evenly (totally uncertain). As the simulation runs, each cell's possible values compete: if a value is already chosen in the same row or column, its probability drops; if nothing else conflicts, it rises. All these units update together—in parallel—until the solution stabilizes across the whole grid.</p>
+            </section>
+
+            <section>
+                <h3>Why Make It This Way? The Motivation</h3>
+                <p>I built this as a hands-on project—curious to see connectionist ideas in action, not just theory. I wanted to show that you can set up a problem as a landscape of units and activation, add the right rules as constraints (inhibition for conflicts, strong input for clues), and let the "answer" literally emerge from their interplay—no step-by-step algorithm needed. At first, wrapping my head around the inhibition process took some time: should probabilities for possible assignments drop instantly to zero when there's a conflict, or only when a value's totally ruled out? Working through this logic, tweaking the probability updates, and seeing the network relax over time helped me understand both the computational and cognitive sides of the model.</p>
+            </section>
+
+            <section>
+                <h3>Why Does It Matter? — Broader CogSci Connections</h3>
+                <p>This approach puts into practice the models discussed in class: it shows how problems can be solved by spreading activation, competition, and constraint satisfaction—not by following internal logic or rules line by line, but by letting the right solution organize itself in a network. This is not just symbolic AI, but connectionism—representing knowledge and solving problems through units (representations), weights (constraints), and iterative stabilization (settling). It's a demonstration of how complex outputs can self-organize from simple local interactions, just like in real neural networks.</p>
+            </section>
+
+            <section>
+                <h3>Next Steps</h3>
+                <p>This is a first pass—a student-created tool built for a college class in November 2025. Future directions might include visualizing changes in probability more atmospherically, handling larger grids, or even letting users design new constraints (beyond Sudoku-like rules). For anyone interested in how cognitive science theories become functional code, or wanting to literally see parallel constraint satisfaction in action, I hope this inspires you to play and explore further.</p>
+            </section>
+        </article>
+
         <footer>
-            <p>Each cell-value pair is a unit with activation. Conflicting assignments inhibit each other. The network settles when activations stabilize.</p>
+            <p>Built with Python (via Pyodide) • Georgia Tech CS • November 2025</p>
         </footer>
     </div>
 
