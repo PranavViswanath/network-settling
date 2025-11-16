@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Settling</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app">
+        <header>
+            <h1>Network Settling</h1>
+            <p>Parallel constraint satisfaction through connectionist relaxation</p>
+        </header>
+
+        <main>
+            <div class="grid-wrapper">
+                <div id="grid" class="grid"></div>
+            </div>
+
+            <div class="controls">
+                <button id="playPause" class="play-button">
+                    <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    <svg class="pause-icon hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="6" y="4" width="4" height="16"></rect>
+                        <rect x="14" y="4" width="4" height="16"></rect>
+                    </svg>
+                    <span class="button-text">Watch it settle</span>
+                </button>
+
+                <button id="step" class="icon-button" title="Step once">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 4 15 12 5 20 5 4"></polygon>
+                        <line x1="19" y1="5" x2="19" y2="19"></line>
+                    </svg>
+                </button>
+
+                <button id="reset" class="icon-button" title="Reset">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="1 4 1 10 7 10"></polyline>
+                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                    </svg>
+                </button>
+
+                <div class="stats">
+                    <div class="stat">
+                        <span class="stat-label">iteration</span>
+                        <span id="iteration" class="stat-value">0</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Δ max</span>
+                        <span id="delta" class="stat-value">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings">
+                <div class="setting">
+                    <label for="speed">Speed</label>
+                    <input type="range" id="speed" min="50" max="1000" value="400" step="50">
+                    <span id="speedValue">400ms</span>
+                </div>
+                
+                <div class="setting">
+                    <label for="inhibition">Inhibition</label>
+                    <input type="range" id="inhibition" min="0" max="100" value="50">
+                    <span id="inhibitionValue">0.50</span>
+                </div>
+            </div>
+
+            <div id="cellDetail" class="cell-detail hidden">
+                <div class="detail-header">
+                    <span id="detailTitle">Cell (0, 0)</span>
+                    <button id="closeDetail" class="close-button">×</button>
+                </div>
+                <div id="detailBars" class="detail-bars"></div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Each cell-value pair is a unit with activation. Conflicting assignments inhibit each other. The network settles when activations stabilize.</p>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
