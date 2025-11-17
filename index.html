@@ -110,7 +110,24 @@
                 
                 <p>The hardest part was wrapping my head around the inhibition process. At first, I was thinking: if a value is impossible, does it go straight to probability 0? Or do probabilities just get lowered gradually? And how do we know the right solution will emerge if we're just doing local updates? Can we trust that the rules alone - inhibitory signals for conflicts and clamped inputs for clues - will organize the whole grid into a valid solution?</p>
                 
-                <p>Turns out, yes. You initialize unknown cells at 25% for each value (totally uncertain), clamp the known values at 100%, then iterate: argmax each cell's probabilities to get its current "vote", send that to everyone in the same row or column, receive inhibitory signals back if there's a conflict, update probabilities, and repeat until no cell changes. The solution just emerges!</p>
+                <p>Turns out, yes! You initialize unknown cells at 25% for each value (totally uncertain), clamp the known values at 100%, then iterate: argmax each cell's probabilities to get its current "vote", send that to everyone in the same row or column, receive inhibitory signals back if there's a conflict, update probabilities, and repeat until no cell changes. The solution just emerges!</p>
+            </section>
+
+            <section>
+                <h3>The Math (How It Actually Works)</h3>
+                <p>What's happening under the hood? For a 4×4 grid, we're not just tracking 16 cells - we're tracking 64 units (16 cells × 4 possible values). Each unit has a probability p<sub>r,c,v</sub> where r is the row, c is the column, and v is the value. The probabilities for each cell sum to 1.</p>
+                
+                <p>The update rule each iteration is pretty straightforward. For each cell and each possible value:</p>
+                
+                <p><strong>First, hard constraints:</strong> If a value is already clamped (set as a clue) in the same row or column, that value's probability goes straight to 0. It's impossible, so we rule it out immediately.</p>
+                
+                <p><strong>Second, soft constraints (the inhibition):</strong> For values that aren't impossible, we calculate how much "competition" they face. We look at all the other cells in the same row and column, check how much each of them wants this same value, and average that. That's the inhibition signal. Then we update: p<sub>new</sub> = p<sub>old</sub> × (1 - α × inhibition), where α is the inhibition strength (default 0.5, adjustable with the slider). Higher inhibition means the probability drops more.</p>
+                
+                <p><strong>Finally, normalize:</strong> After applying inhibition, we rescale all the probabilities for that cell so they sum back to 1. This keeps everything as a proper probability distribution.</p>
+                
+                <p>The key insight is that all cells update in parallel. When Cell A lowers its probability for value 3 because Cell B wants it, that change immediately affects Cell B's next update. It's a feedback loop - everyone's sending signals to everyone else, and the whole system settles into a state where all the constraints are satisfied. No cell is "in charge" - the solution emerges from all these local interactions happening at once.</p>
+                
+                <p>We stop when the maximum change across all probabilities drops below 0.001. At that point, the network has converged - every cell has basically decided on a value, and no one's changing their mind anymore.</p>
             </section>
 
             <section>
