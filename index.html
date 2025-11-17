@@ -89,31 +89,41 @@
 
         <article class="writeup">
             <h2>Network Settling Visual Tool</h2>
-            <p class="intro">Welcome! This tool lets you input your own grid (like Sudoku or a Latin Square) and see how a network settles on the solution—live and step by step. Change the cell values, press go, and watch as the grid works out the answer via competing activations, not traditional logic. You can experiment to see how different clues shape the solution and how quickly the network "relaxes" into the right state.</p>
+            <p class="intro">This tool lets you input your own grid and watch how a network settles on the solution through competing activations, not traditional step-by-step logic. Change the cell values, press go, and see how different clues shape the solution and how quickly the network "relaxes" into the right state.</p>
 
             <section>
                 <h3>What is This?</h3>
-                <p>This is an interactive exploration of <strong>connectionism</strong> from cognitive science—specifically, what you see in <a href="https://gatech.instructure.com/files/65969493/download?download_frd=1&verifier=fZP5Q1WLFB7dg6eI8Im4QvjRCOAqCzrZLnNxd8cw" target="_blank">Lecture 7 on Connections</a>. Instead of solving the puzzle through step-by-step elimination, the grid models every possible cell-value assignment as a "unit" with an activation level (how likely that cell is to take on a particular value). Known values ("clues") are set to maximum activation, and the rest start evenly (totally uncertain). As the simulation runs, each cell's possible values compete: if a value is already chosen in the same row or column, its probability drops; if nothing else conflicts, it rises. All these units update together—in parallel—until the solution stabilizes across the whole grid.</p>
+                <p>I'm trying to visualize constraint satisfaction using network settling, based on concepts from <a href="https://gatech.instructure.com/files/65969493/download?download_frd=1&verifier=fZP5Q1WLFB7dg6eI8Im4QvjRCOAqCzrZLnNxd8cw" target="_blank">Lecture 7 on Connections</a>. The idea is that concepts are represented as units and constraints as excitatory/inhibitory connections. We satisfy external constraints (what's known) by clamping those units. Then we spread activations from initialization and repeatedly update until stabilization - watching the network relax.</p>
+                
+                <p>For a 4×4 grid, each cell doesn't just hold one number. It has <em>four</em> activation levels representing the probability of being 1, 2, 3, or 4. So we're not just dealing with 16 cells - we're dealing with 64 units (16 cells x 4 possible values). Each cell takes its highest-probability value and broadcasts that to everyone in its row and column. If your value conflicts with mine, you send back an inhibitory signal saying "don't be this," and my probability for that value drops. If there's no conflict, probabilities stay or rise. All cells update in parallel until nothing changes.</p>
             </section>
 
             <section>
-                <h3>Why Make It This Way? The Motivation</h3>
-                <p>I built this as a hands-on project—curious to see connectionist ideas in action, not just theory. I wanted to show that you can set up a problem as a landscape of units and activation, add the right rules as constraints (inhibition for conflicts, strong input for clues), and let the "answer" literally emerge from their interplay—no step-by-step algorithm needed. At first, wrapping my head around the inhibition process took some time: should probabilities for possible assignments drop instantly to zero when there's a conflict, or only when a value's totally ruled out? Working through this logic, tweaking the probability updates, and seeing the network relax over time helped me understand both the computational and cognitive sides of the model.</p>
+                <h3>Why I Built This</h3>
+                <p>I was really excited about the generalizability of this approach after we talked about in lecture I wanted to find out whether you can really just set up a problem as a landscape of units and activations, add the right constraints, and let the answer emerge. There is no explicit algorithm or backtracking - just let the network figure it out.</p>
+                
+                <p>The hardest part was wrapping my head around the inhibition process. At first, I was thinking: if a value is impossible, does it go straight to probability 0? Or do probabilities just get lowered gradually? And how do we know the right solution will emerge if we're just doing local updates? Can we trust that the rules alone - inhibitory signals for conflicts and clamped inputs for clues - will organize the whole grid into a valid solution?</p>
+                
+                <p>Turns out, yes. You initialize unknown cells at 25% for each value (totally uncertain), clamp the known values at 100%, then iterate: argmax each cell's probabilities to get its current "vote", send that to everyone in the same row or column, receive inhibitory signals back if there's a conflict, update probabilities, and repeat until no cell changes. The solution just emerges!</p>
             </section>
 
             <section>
-                <h3>Why Does It Matter? — Broader CogSci Connections</h3>
-                <p>This approach puts into practice the models discussed in class: it shows how problems can be solved by spreading activation, competition, and constraint satisfaction—not by following internal logic or rules line by line, but by letting the right solution organize itself in a network. This is not just symbolic AI, but connectionism—representing knowledge and solving problems through units (representations), weights (constraints), and iterative stabilization (settling). It's a demonstration of how complex outputs can self-organize from simple local interactions, just like in real neural networks.</p>
+                <h3>Why This Matters (CogSci Perspective)</h3>
+                <p>This is <strong>connectionism</strong> in action. Instead of symbolic AI, where you explicitly program rules and logic, you represent knowledge as activation patterns across units and constraints as weighted connections. The answer is not computed step by step. It self-organizes from local interactions. This is how neural networks work and possibly how the brain might solve problems: parallel processing, competition, and constraint satisfaction through spreading activation.</p>
+                
+                <p>What I find cool is that you can literally <em>watch</em> information propagate. A single clamped clue sends ripples through the network. Probabilities shift, conflicts resolve, and gradually the whole grid converges. It's emergent behavior from simple rules - that is the whole point of connectionist models.</p>
             </section>
 
             <section>
-                <h3>Next Steps</h3>
-                <p>This is a first pass—a student-created tool built for a college class in November 2025. Future directions might include visualizing changes in probability more atmospherically, handling larger grids, or even letting users design new constraints (beyond Sudoku-like rules). For anyone interested in how cognitive science theories become functional code, or wanting to literally see parallel constraint satisfaction in action, I hope this inspires you to play and explore further.</p>
+                <h3>What's Next</h3>
+                <p>This is a first pass, built for a college class in November 2025. I'd love to add more visual feedback, such as showing inhibitory connections as they fire. I also want to support bigger grids or let users design custom constraints beyond Sudoku rules. If you're interested in how cognitive science theories become actual working code - or you just want to see parallel constraint satisfaction happen live - feel free to play around and experiment.</p>
+                
+                <p>The original lecture that inspired this is <a href="https://gatech.instructure.com/files/65969493/download?download_frd=1&verifier=fZP5Q1WLFB7dg6eI8Im4QvjRCOAqCzrZLnNxd8cw" target="_blank">here</a>.</p>
             </section>
         </article>
 
         <footer>
-            <p>Built with Python (via Pyodide) • Georgia Tech CS • November 2025</p>
+            <p>Built with Python (via Pyodide) | Georgia Tech CS | November 2025</p>
         </footer>
     </div>
 
