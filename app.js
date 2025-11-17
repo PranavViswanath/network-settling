@@ -38,6 +38,9 @@ async function init() {
         renderGrid();
         await updateVisualization();
         
+        // Auto-select first non-clamped cell
+        await selectFirstUnclampedCell();
+        
         console.log('Initialization complete');
         
     } catch (error) {
@@ -231,6 +234,9 @@ async function updateVisualization() {
         document.getElementById('delta').textContent = state.max_change.toFixed(4);
     }
     
+    // Update network status
+    updateNetworkStatus(state);
+    
     // Update probability panel if watching a cell
     if (watchedCell) {
         updateProbabilityPanel(state);
@@ -279,6 +285,111 @@ function updateCell(cell, probs, isClamped) {
     if (isRunning) {
         cell.classList.add('settling');
         setTimeout(() => cell.classList.remove('settling'), 500);
+    }
+}
+
+// Auto-select first unclamped cell on load
+async function selectFirstUnclampedCell() {
+    const state = await getState();
+    
+    // Find first non-clamped cell
+    for (let row = 0; row < gridSize; row++) {
+        for (let col = 0; col < gridSize; col++) {
+            const isClamped = state.clamped.some(([r, c]) => r === row && c === col);
+            if (!isClamped) {
+                watchedCell = { row, col };
+                const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+                if (cell) {
+                    cell.classList.add('selected');
+                    selectedCell = cell;
+                }
+                updateProbabilityPanel(state);
+                return;
+            }
+        }
+    }
+}
+
+// Update network status with dynamic explanation
+function updateNetworkStatus(state) {
+    const statusDiv = document.getElementById('networkStatus');
+    if (!statusDiv) return;
+    
+    let message = '';
+    let isActive = false;
+    
+    if (isRunning) {
+        isActive = true;
+        
+        // Auto-switch to a cell that's still changing if current one converged
+        if (watchedCell) {
+            const key = `${watchedCell.row},${watchedCell.col}`;
+            const probs = state.probabilities[key];
+            const maxProb = Math.max(...probs);
+            
+            // If watched cell is confident, find another uncertain one
+            if (maxProb > 0.95) {
+                findNextUncertainCell(state);
+            }
+        }
+        
+        if (state.iteration === 0) {
+            message = 'Starting network settling... Each cell-value pair is a unit with activation.';
+        } else if (state.iteration < 5) {
+            message = `Iteration ${state.iteration}: Units are sending inhibitory signals to conflicting values in same row/column.`;
+        } else if (state.max_change > 0.01) {
+            message = `Iteration ${state.iteration}: Probabilities adjusting as conflicts resolve. High-confidence values suppress alternatives.`;
+        } else if (state.max_change > 0.001) {
+            message = `Iteration ${state.iteration}: Network stabilizing... Changes getting smaller as solution emerges.`;
+        } else {
+            message = `Converged after ${state.iteration} iterations! All activations stable.`;
+            isActive = false;
+        }
+    } else if (state.iteration === 0) {
+        message = '👆 Try entering different values in the grid. When ready, press "Watch it settle" to see the network solve it.';
+    } else if (state.is_converged) {
+        message = `✓ Converged! Network found stable solution after ${state.iteration} iterations.`;
+    } else {
+        message = `Paused at iteration ${state.iteration}. Network still settling...`;
+    }
+    
+    statusDiv.textContent = message;
+    statusDiv.className = isActive ? 'network-status active' : 'network-status';
+}
+
+// Find next uncertain cell to watch
+function findNextUncertainCell(state) {
+    let mostUncertain = null;
+    let lowestConfidence = 1.0;
+    
+    for (let row = 0; row < gridSize; row++) {
+        for (let col = 0; col < gridSize; col++) {
+            const isClamped = state.clamped.some(([r, c]) => r === row && c === col);
+            if (!isClamped) {
+                const key = `${row},${col}`;
+                const probs = state.probabilities[key];
+                const maxProb = Math.max(...probs);
+                
+                if (maxProb < lowestConfidence) {
+                    lowestConfidence = maxProb;
+                    mostUncertain = { row, col };
+                }
+            }
+        }
+    }
+    
+    if (mostUncertain && lowestConfidence < 0.95) {
+        // Switch to watching this cell
+        if (selectedCell) {
+            selectedCell.classList.remove('selected');
+        }
+        
+        watchedCell = mostUncertain;
+        const cell = document.querySelector(`[data-row="${mostUncertain.row}"][data-col="${mostUncertain.col}"]`);
+        if (cell) {
+            cell.classList.add('selected');
+            selectedCell = cell;
+        }
     }
 }
 
@@ -389,6 +500,16 @@ async function resetGrid() {
     
     document.getElementById('delta').textContent = '—';
     document.querySelector('.button-text').textContent = 'Watch it settle';
+    
+    // Reset network status
+    const statusDiv = document.getElementById('networkStatus');
+    if (statusDiv) {
+        statusDiv.textContent = '👆 Try entering different values in the grid. When ready, press "Watch it settle" to see the network solve it.';
+        statusDiv.className = 'network-status';
+    }
+    
+    // Auto-select first unclamped cell
+    await selectFirstUnclampedCell();
 }
 
 // Event listeners
