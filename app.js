@@ -384,45 +384,74 @@ function updateNetworkStatus(state) {
     if (!statusDiv) return;
     
     let message = '';
-    let isActive = false;
+    let statusClass = 'network-status';
     
     if (isRunning) {
-        isActive = true;
+        // Check if entire grid has converged (not just one cell)
+        const gridConverged = state.is_converged || state.max_change < 0.001;
         
-        // Auto-switch to a cell that's still changing if current one converged
-        if (watchedCell) {
-            const key = `${watchedCell.row},${watchedCell.col}`;
-            const probs = state.probabilities[key];
-            const maxProb = Math.max(...probs);
-            
-            // If watched cell is confident, find another uncertain one
-            if (maxProb > 0.95) {
-                findNextUncertainCell(state);
-            }
-        }
-        
-        if (state.iteration === 0) {
-            message = 'Starting network settling... Each cell-value pair is a unit with activation.';
-        } else if (state.iteration < 5) {
-            message = `Iteration ${state.iteration}: Units are sending inhibitory signals to conflicting values in same row/column.`;
-        } else if (state.max_change > 0.01) {
-            message = `Iteration ${state.iteration}: Probabilities adjusting as conflicts resolve. High-confidence values suppress alternatives.`;
-        } else if (state.max_change > 0.001) {
-            message = `Iteration ${state.iteration}: Network stabilizing... Changes getting smaller as solution emerges.`;
+        if (gridConverged) {
+            // Entire grid converged - flash green!
+            message = `🎉 Grid Converged! Solution found after ${state.iteration} iterations.`;
+            statusClass = 'network-status converged';
         } else {
-            message = `Converged after ${state.iteration} iterations! All activations stable.`;
-            isActive = false;
+            // Still settling - auto-switch to uncertain cells
+            if (watchedCell) {
+                const key = `${watchedCell.row},${watchedCell.col}`;
+                const probs = state.probabilities[key];
+                const maxProb = Math.max(...probs);
+                
+                // If watched cell is confident, find another uncertain one
+                if (maxProb > 0.95) {
+                    const switched = findNextUncertainCell(state);
+                    if (switched) {
+                        // Flash green briefly for this cell, then back to blue
+                        message = `Cell (${watchedCell.row}, ${watchedCell.col}) settled! Moving to next uncertain cell...`;
+                        statusClass = 'network-status cell-converged';
+                        
+                        // Reset to blue after brief flash
+                        setTimeout(() => {
+                            if (isRunning && !state.is_converged) {
+                                statusDiv.className = 'network-status active';
+                            }
+                        }, 800);
+                    }
+                }
+            }
+            
+            // Default active messages if no cell just converged
+            if (!message) {
+                if (state.iteration === 0) {
+                    message = 'Starting network settling... Each cell-value pair is a unit with activation.';
+                    statusClass = 'network-status active';
+                } else if (state.iteration < 5) {
+                    message = `Iteration ${state.iteration}: Units are sending inhibitory signals to conflicting values in same row/column.`;
+                    statusClass = 'network-status active';
+                } else if (state.max_change > 0.01) {
+                    message = `Iteration ${state.iteration}: Probabilities adjusting as conflicts resolve. High-confidence values suppress alternatives.`;
+                    statusClass = 'network-status active';
+                } else if (state.max_change > 0.001) {
+                    message = `Iteration ${state.iteration}: Network stabilizing... Changes getting smaller as solution emerges.`;
+                    statusClass = 'network-status active stabilizing';
+                } else {
+                    message = `Iteration ${state.iteration}: Fine-tuning final probabilities...`;
+                    statusClass = 'network-status active stabilizing';
+                }
+            }
         }
     } else if (state.iteration === 0) {
         message = '👆 Try entering different values in the grid. When ready, press "Watch it settle" to see the network solve it.';
-    } else if (state.is_converged) {
-        message = `✓ Converged! Network found stable solution after ${state.iteration} iterations.`;
+        statusClass = 'network-status';
+    } else if (state.is_converged || state.max_change < 0.001) {
+        message = `✓ Grid Converged! Network found stable solution after ${state.iteration} iterations.`;
+        statusClass = 'network-status converged';
     } else {
         message = `Paused at iteration ${state.iteration}. Network still settling...`;
+        statusClass = 'network-status';
     }
     
     statusDiv.textContent = message;
-    statusDiv.className = isActive ? 'network-status active' : 'network-status';
+    statusDiv.className = statusClass;
 }
 
 // Find next uncertain cell to watch
@@ -458,7 +487,9 @@ function findNextUncertainCell(state) {
             cell.classList.add('selected');
             selectedCell = cell;
         }
+        return true; // Switched to new cell
     }
+    return false; // No uncertain cells left
 }
 
 // Update probability panel - shows live distribution
@@ -534,9 +565,14 @@ async function play() {
         const state = await step();
         await updateVisualization();
         
-        if (state.is_converged) {
+        if (state.is_converged || state.max_change < 0.001) {
             pause();
-            document.querySelector('.button-text').textContent = 'Converged ✓';
+            document.querySelector('.button-text').textContent = '🎉 Grid Converged!';
+            
+            // Flash green celebration
+            const playButton = document.getElementById('playPause');
+            playButton.classList.add('converged');
+            setTimeout(() => playButton.classList.remove('converged'), 2000);
         }
     }, speed);
 }
