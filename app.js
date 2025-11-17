@@ -195,6 +195,12 @@ async function handleCellClick(row, col) {
         if (save && newValue && newValue !== currentValue) {
             const num = parseInt(newValue);
             if (num >= 1 && num <= gridSize) {
+                // Check if this value would create a conflict
+                const isValid = await checkIfValidClue(row, col, num);
+                if (!isValid) {
+                    showValidationWarning(row, col, num);
+                    return;
+                }
                 await setClue(row, col, num);
                 await updateVisualization();
             }
@@ -212,6 +218,55 @@ async function handleCellClick(row, col) {
     input.addEventListener('blur', () => finishEdit(true));
 }
 
+// Check if a clue would be valid
+async function checkIfValidClue(row, col, value) {
+    const state = await getState();
+    
+    // Check row for conflicts
+    for (let c = 0; c < gridSize; c++) {
+        if (c === col) continue;
+        const isClamped = state.clamped.some(([r, c_]) => r === row && c_ === c);
+        if (isClamped) {
+            const cellValue = state.grid[row][c];
+            if (cellValue === value) {
+                return false; // Conflict in row
+            }
+        }
+    }
+    
+    // Check column for conflicts
+    for (let r = 0; r < gridSize; r++) {
+        if (r === row) continue;
+        const isClamped = state.clamped.some(([r_, c]) => r_ === r && c === col);
+        if (isClamped) {
+            const cellValue = state.grid[r][col];
+            if (cellValue === value) {
+                return false; // Conflict in column
+            }
+        }
+    }
+    
+    return true; // No conflicts
+}
+
+// Show validation warning
+function showValidationWarning(row, col, value) {
+    const statusDiv = document.getElementById('networkStatus');
+    if (!statusDiv) return;
+    
+    const originalMessage = statusDiv.textContent;
+    const originalClass = statusDiv.className;
+    
+    statusDiv.textContent = `⚠️ Invalid! Value ${value} already exists in row ${row} or column ${col}. Choose a different value.`;
+    statusDiv.className = 'network-status warning';
+    
+    // Reset after 4 seconds
+    setTimeout(() => {
+        statusDiv.textContent = originalMessage;
+        statusDiv.className = originalClass;
+    }, 4000);
+}
+
 // Update visualization
 async function updateVisualization() {
     const state = await getState();
@@ -224,7 +279,7 @@ async function updateVisualization() {
             const probs = state.probabilities[key];
             const isClamped = state.clamped.some(([r, c]) => r === row && c === col);
             
-            updateCell(cell, probs, isClamped);
+            await updateCell(cell, probs, isClamped, state);
         }
     }
     
@@ -244,19 +299,28 @@ async function updateVisualization() {
 }
 
 // Update single cell
-function updateCell(cell, probs, isClamped) {
+async function updateCell(cell, probs, isClamped, state) {
     const maxProb = Math.max(...probs);
     const maxIndex = probs.indexOf(maxProb);
     const value = maxIndex + 1;
     
+    const hasStarted = state && state.iteration > 0;
+    
     const valueSpan = cell.querySelector('.cell-value');
     if (valueSpan) {
-        valueSpan.textContent = value;
+        // Only show value if clamped OR if network has started settling
+        if (isClamped) {
+            valueSpan.textContent = value;
+        } else if (hasStarted || isRunning) {
+            valueSpan.textContent = value;
+        } else {
+            valueSpan.textContent = ''; // Blank until settling starts
+        }
     }
     
     const probSpan = cell.querySelector('.cell-probability');
     if (probSpan) {
-        if (!isClamped && maxProb < 0.99) {
+        if (!isClamped && maxProb < 0.99 && (isRunning || hasStarted)) {
             probSpan.textContent = maxProb.toFixed(2);
         } else {
             probSpan.textContent = '';
@@ -276,9 +340,13 @@ function updateCell(cell, probs, isClamped) {
             cell.classList.add('selected');
         }
         
-        // Subtle background based on confidence
-        const gray = 250 - Math.floor(maxProb * 15);
-        cell.style.background = `rgb(${gray}, ${gray}, ${gray})`;
+        // Subtle background based on confidence (only when settling)
+        if (hasStarted || isRunning) {
+            const gray = 250 - Math.floor(maxProb * 15);
+            cell.style.background = `rgb(${gray}, ${gray}, ${gray})`;
+        } else {
+            cell.style.background = ''; // Clear background when not settling
+        }
     }
     
     // Add settling animation
@@ -403,6 +471,7 @@ function updateProbabilityPanel(state) {
     const isClamped = state.clamped.some(([r, c]) => r === watchedCell.row && c === watchedCell.col);
     
     const maxProb = Math.max(...probs);
+    const hasStarted = state.iteration > 0;
     
     let html = `
         <div class="prob-cell-header">
@@ -416,17 +485,20 @@ function updateProbabilityPanel(state) {
         const isWinner = prob === maxProb && prob > 0.5;
         const isHigh = prob > 0.7;
         
+        // Show all probabilities as equal if not started, unless clamped
+        const displayProb = (!hasStarted && !isClamped) ? 25.0 : prob * 100;
+        
         html += `
             <div class="prob-bar ${isRunning ? 'updating' : ''}">
                 <div class="prob-label">
-                    <span class="value-name ${isWinner ? 'winner' : ''}">
-                        value ${value}${isWinner ? ' ←' : ''}
+                    <span class="value-name ${isWinner && hasStarted ? 'winner' : ''}">
+                        value ${value}${isWinner && hasStarted ? ' ←' : ''}
                     </span>
-                    <span>${(prob * 100).toFixed(1)}%</span>
+                    <span>${displayProb.toFixed(1)}%</span>
                 </div>
                 <div class="prob-track">
-                    <div class="prob-fill ${isHigh ? 'high' : ''} ${isWinner ? 'winner' : ''}" 
-                         style="width: ${prob * 100}%"></div>
+                    <div class="prob-fill ${isHigh && hasStarted ? 'high' : ''} ${isWinner && hasStarted ? 'winner' : ''}" 
+                         style="width: ${displayProb}%"></div>
                 </div>
             </div>
         `;
