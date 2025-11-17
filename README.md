@@ -1,6 +1,6 @@
 # Network Settling Visualizer
 
-A beautiful interactive visualization tool demonstrating **parallel constraint satisfaction** through network settling—a connectionist approach from cognitive science.
+An interactive visualization tool demonstrating **parallel constraint satisfaction** through network settling—a connectionist approach from cognitive science.
 
 ![Network Settling Demo](https://img.shields.io/badge/Python-In%20Browser-blue?logo=python) ![GitHub Pages](https://img.shields.io/badge/Deploy-GitHub%20Pages-success?logo=github)
 
