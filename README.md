@@ -1,6 +1,6 @@
 # Network Settling Visualizer
 
-A beautiful interactive visualization tool demonstrating **parallel constraint satisfaction** through network settling—a connectionist approach from cognitive science.
+An interactive visualization tool demonstrating **parallel constraint satisfaction** through network settling-a connectionist approach from cognitive science.
 
 ![Network Settling Demo](https://img.shields.io/badge/Python-In%20Browser-blue?logo=python) ![GitHub Pages](https://img.shields.io/badge/Deploy-GitHub%20Pages-success?logo=github)
 
@@ -13,7 +13,7 @@ This tool demonstrates how the brain might solve constraint satisfaction problem
 - **Settling**: Activations update iteratively through parallel relaxation
 - **Clues**: Input values are clamped (fixed at probability 1)
 
-This approach models human problem-solving through parallel activation, inhibition, and relaxation—similar to Hopfield networks and parallel distributed processing.
+This approach models human problem-solving through parallel activation, inhibition, and relaxation-similar to Hopfield networks and parallel distributed processing.
 
 ## ✨ Features
 
